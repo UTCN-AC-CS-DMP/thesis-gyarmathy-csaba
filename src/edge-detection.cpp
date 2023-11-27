@@ -198,7 +198,7 @@ void EdgeDetection::draw_contour(const cv::Mat& source) {
   for (const auto p : contour_points) contour.at<uint8_t>(p.y, p.x) = 0;
 
   // Draw the inner hole contours
-  for (const auto h : holes)
+  for (const auto& h : holes)
     for (const auto p : h) contour.at<uint8_t>(p.y, p.x) = 0;
 
   imshow("Contour", contour);
@@ -350,9 +350,9 @@ cv::Mat_<uint8_t> EdgeDetection::canny_edge_detection(cv::Mat_<uint8_t>& img) {
     for (int j = 0; j < img.cols; j++) {
       float a = ang(i, j);
       if (a < 0) {
-        a += 2 * std::numbers::pi;
+        a += 2 * PI_20_PREC;
       }
-      q(i, j) = int(round(a / (2 * std::numbers::pi) * 8)) % 8;
+      q(i, j) = int(round(a / (2 * PI_20_PREC) * 8)) % 8;
     }
   }
 

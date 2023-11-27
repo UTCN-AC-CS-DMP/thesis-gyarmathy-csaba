@@ -18,11 +18,14 @@
  */
 class EdgeDetection {
  private:
+  // π as a constant
+  const double PI_20_PREC = 3.141592653589793238462643383279502884197169399375105820974944;
+
   // Next direction to follow while tracing the contour
   const std::vector<int> y_chain_neighbours = {0, -1, -1, -1, 0, 1, 1, 1};
   const std::vector<int> x_chain_neighbours = {1, 1, 0, -1, -1, -1, 0, 1};
 
-  // Neighbours of a pixel
+  // Neighboring pixels for labeling connected holes
   const std::vector<int> y_neighbours = {-1, -1, -1, 0, 0, 1, 1, 1};
   const std::vector<int> x_neighbours = {-1, 0, 1, -1, 1, -1, 0, 1};
 
