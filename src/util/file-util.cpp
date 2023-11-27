@@ -1,11 +1,12 @@
 #include "file-util.hh"
+
 #include "nfd.hpp"
 
-std::string utcn::ip::FileUtil::getFileOrDir(const bool isFile) {
+std::string FileUtil::getFileOrDir(const bool is_file) {
   NFD::Guard nfdGuard;
   NFD::UniquePath outPath;
   nfdresult_t result;
-  if (isFile) {
+  if (is_file) {
     result = NFD::OpenDialog(outPath);
   } else {
     result = NFD::PickFolder(outPath);
@@ -16,15 +17,11 @@ std::string utcn::ip::FileUtil::getFileOrDir(const bool isFile) {
   return "";
 }
 
-std::string utcn::ip::FileUtil::getSingleFileAbsPath() {
-  return getFileOrDir();
-}
+std::string FileUtil::getSingleFileAbsPath() { return getFileOrDir(); }
 
-std::string utcn::ip::FileUtil::getDirectoryAbsPath() {
-  return getFileOrDir(false);
-}
+std::string FileUtil::getDirectoryAbsPath() { return getFileOrDir(false); }
 
-std::vector<std::string> utcn::ip::FileUtil::getAllFilesInDirectory() {
+std::vector<std::string> FileUtil::getAllFilesInDirectory() {
   std::vector<std::string> filenames;
   const std::string dir_abs_path = getDirectoryAbsPath();
   if (!dir_abs_path.empty()) {

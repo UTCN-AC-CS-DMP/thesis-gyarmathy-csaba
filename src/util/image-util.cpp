@@ -1,7 +1,7 @@
 #include "image-util.hh"
 
-void utcn::ip::ImageUtil::resizeImg(const cv::Mat& src, cv::Mat &dst, int maxSize,
-                                    bool interpolate) {
+void ImageUtil::resize_img(const cv::Mat& src, cv::Mat& dst, int maxSize,
+                           bool interpolate) {
   double ratio = 1;
   const double w = src.cols;
   const double h = src.rows;
@@ -16,4 +16,8 @@ void utcn::ip::ImageUtil::resizeImg(const cv::Mat& src, cv::Mat &dst, int maxSiz
     cv::resize(src, dst, sz);
   else
     resize(src, dst, sz, 0, 0, cv::INTER_NEAREST);
+}
+
+bool ImageUtil::is_inside(const cv::Mat& img, int i, int j) {
+  return i >= 0 && i < img.rows && j >= 0 && j < img.cols;
 }

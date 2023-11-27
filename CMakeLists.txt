@@ -12,7 +12,9 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/lib/nativefiledialog-extended")
 add_executable(${PROJECT_NAME}
         src/util/file-util.cpp
         src/util/image-util.cpp
+        src/g-code.cpp
+        src/edge-detection.cpp
         src/main.cpp)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include/util)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include ${CMAKE_CURRENT_LIST_DIR}/include/util)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${OpenCV_LIBS} nfd)
