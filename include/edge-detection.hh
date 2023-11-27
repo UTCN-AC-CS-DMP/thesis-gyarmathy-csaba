@@ -19,7 +19,8 @@
 class EdgeDetection {
  private:
   // π as a constant
-  const double PI_20_PREC = 3.141592653589793238462643383279502884197169399375105820974944;
+  const double PI_20_PREC =
+      3.141592653589793238462643383279502884197169399375105820974944;
 
   // Next direction to follow while tracing the contour
   const std::vector<int> y_chain_neighbours = {0, -1, -1, -1, 0, 1, 1, 1};
