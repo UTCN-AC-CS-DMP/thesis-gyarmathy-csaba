@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(OpenCV REQUIRED)
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/lib/nativefiledialog-extended")
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/3rdparty/nativefiledialog-extended")
 
 add_executable(${PROJECT_NAME}
         src/util/file-util.cpp
