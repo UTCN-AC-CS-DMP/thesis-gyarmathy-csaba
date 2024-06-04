@@ -3,7 +3,7 @@
     {
       "name": "x64-Release",
       "generator": "Visual Studio 17 2022 Win64",
-      "configurationType": "Release",
+      "configurationType": "RelWithDebInfo",
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
@@ -11,31 +11,7 @@
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
       "intelliSenseMode": "windows-msvc-x64",
-      "variables": [
-        {
-          "name": "OpenCV_DIR",
-          "value": "C:/Users/Public/Apps/opencv490-cuda123-cudnn897-winx64",
-          "type": "PATH"
-        }
-      ]
-    },
-    {
-      "name": "x64-Debug",
-      "generator": "Ninja",
-      "configurationType": "Debug",
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}",
-      "cmakeCommandArgs": "",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "inheritEnvironments": [ "msvc_x64_x64" ],
-      "variables": [
-        {
-          "name": "OpenCV_DIR",
-          "value": "C:/Users/Public/Apps/opencv490-cuda123-cudnn897-winx64",
-          "type": "PATH"
-        }
-      ]
+      "variables": []
     }
   ]
 }
