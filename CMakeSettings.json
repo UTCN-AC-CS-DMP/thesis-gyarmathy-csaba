@@ -14,7 +14,7 @@
       "variables": [
         {
           "name": "OpenCV_DIR",
-          "value": "C:/Users/Public/Apps/opencv490-cuda123-cudnn897-winx64",
+          "value": "C:\\opencv-cuda-winx64-vs2022-4.8.1",
           "type": "PATH"
         }
       ]
@@ -32,7 +32,7 @@
       "variables": [
         {
           "name": "OpenCV_DIR",
-          "value": "C:/Users/Public/Apps/opencv490-cuda123-cudnn897-winx64",
+          "value": "CC:\\opencv-cuda-winx64-vs2022-4.8.1",
           "type": "PATH"
         }
       ]
