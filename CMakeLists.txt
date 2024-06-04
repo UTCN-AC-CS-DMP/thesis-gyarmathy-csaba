@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24.0 FATAL_ERROR)
-project(gyarmathy-csaba-thesis
+project(gyarmathi-csaba-thesis
         VERSION 0.1.0
         LANGUAGES CXX)
 
