@@ -464,5 +464,7 @@ void EdgeDetection::generate_canny_gcode(cv::Mat_<uint8_t>& edges,
   file << "\n";
   file << "M2 ; End of program\n";
 
+  std::cout << "G-code file generated: " << filename << std::endl;
+
   file.close();
 }
