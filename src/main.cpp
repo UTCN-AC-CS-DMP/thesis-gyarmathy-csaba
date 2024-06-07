@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "cnc-controller.hh"
 #include "edge-detection.hh"
 #include "file-util.hh"
 #include "g-code.hh"
@@ -45,7 +44,6 @@ int main() {
     cv::Mat_<uint8_t> img;
     EdgeDetection edge_detection;
     GCode gcode;
-    CNCController cnc_controller;
 
     while (true) {
         showMainMenu();
@@ -92,7 +90,7 @@ int main() {
                                 showGCodeMenu();
                                 std::cin >> cncChoice;
 
-                                switch (cncChoice) {
+                                /*switch (cncChoice) {
                                     case 1: {
                                         std::string portname;
                                         std::cout << "Enter the serial port (e.g., COM1 or /dev/ttyUSB0): ";
@@ -120,7 +118,7 @@ int main() {
                                         break;
                                     default:
                                         std::cout << "Invalid choice. Please enter a number between 1 and 5." << std::endl;
-                                }
+                                }*/
                             } while (cncChoice != 5);
                             break;
                         }
@@ -139,7 +137,7 @@ int main() {
                     showGCodeMenu();
                     std::cin >> cncChoice;
 
-                    switch (cncChoice) {
+                    /*switch (cncChoice) {
                         case 1: {
                             std::string portname;
                             std::cout << "Enter the serial port (e.g., COM1 or /dev/ttyUSB0): ";
@@ -167,7 +165,7 @@ int main() {
                             break;
                         default:
                             std::cout << "Invalid choice. Please enter a number between 1 and 5." << std::endl;
-                    }
+                    }*/
                 } while (cncChoice != 5);
                 break;
             }
