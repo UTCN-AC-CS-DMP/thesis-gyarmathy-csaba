@@ -16,6 +16,16 @@
           "name": "OpenCV_DIR",
           "value": "C:\\opencv-cuda-winx64-vs2022-4.8.1",
           "type": "PATH"
+        },
+        {
+          "name": "BOOST_ROOT",
+          "value": "C:\\boost_1_85_0",
+          "type": "PATH"
+        },
+        {
+          "name": "BOOST_LIBRARYDIR",
+          "value": "C:\\boost_1_85_0\\stage\\lib",
+          "type": "PATH"
         }
       ]
     },
@@ -29,10 +39,21 @@
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
       "inheritEnvironments": [ "msvc_x64_x64" ],
+      "intelliSenseMode": "windows-msvc-x64",
       "variables": [
         {
           "name": "OpenCV_DIR",
-          "value": "CC:\\opencv-cuda-winx64-vs2022-4.8.1",
+          "value": "C:\\opencv-cuda-winx64-vs2022-4.8.1",
+          "type": "PATH"
+        },
+        {
+          "name": "BOOST_ROOT",
+          "value": "C:\\boost_1_85_0",
+          "type": "PATH"
+        },
+        {
+          "name": "BOOST_LIBRARYDIR",
+          "value": "C:\\boost_1_85_0\\stage\\lib",
           "type": "PATH"
         }
       ]
