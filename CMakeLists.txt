@@ -12,7 +12,7 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/3rdparty/nativefiledialog-extended")
 add_executable(${PROJECT_NAME}
         src/util/file-util.cpp
         src/util/image-util.cpp
-        src/cnc-controller.cpp
+        src/g-code.cpp
         src/edge-detection.cpp
         src/main.cpp)
 
