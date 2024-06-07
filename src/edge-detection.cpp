@@ -248,7 +248,7 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
     // Trace the outer contour (excluding the first and last points)
     for (size_t i = 2; i < outerContour.size() - 1; ++i) {
       const auto& point = outerContour[i];
-      file << "G01 X" << point.x * scale << " Y" << point.y * scale << '\n';
+      file << "G01 X" << point.x * scale << " Y" << -point.y * scale << '\n';
     }
   }
 
@@ -257,12 +257,12 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
     if (hole.size() >= 3)  // Ensure there are enough points
     {
       // Move to the starting point of the hole contour
-      file << "G00 X" << hole[1].x * scale << " Y" << hole[1].y * scale << '\n';
+      file << "G00 X" << hole[1].x * scale << " Y" << -hole[1].y * scale << '\n';
 
       // Trace the hole contour (excluding the first and last points)
       for (size_t i = 2; i < hole.size() - 1; ++i) {
         const auto& point = hole[i];
-        file << "G01 X" << point.x * scale << " Y" << point.y * scale << '\n';
+        file << "G01 X" << point.x * scale << " Y" << -point.y * scale << '\n';
       }
     }
   }
@@ -453,11 +453,11 @@ void EdgeDetection::generate_canny_gcode(cv::Mat_<uint8_t>& edges,
   file << "\n";
 
   // Set starting point as G00 command
-  file << "G00 X" << boundary[0].x << " Y" << boundary[0].y << std::endl;
+  file << "G00 X" << boundary[0].x << " Y" << -boundary[0].y << std::endl;
 
   // Generate G01 commands for boundary scanning
   for (size_t i = 1; i < boundary.size(); i++) {
-    file << "G01 X" << boundary[i].x << " Y" << boundary[i].y << std::endl;
+    file << "G01 X" << boundary[i].x << " Y" << -boundary[i].y << std::endl;
   }
 
   // G-code footer
