@@ -13,6 +13,8 @@ add_executable(${PROJECT_NAME}
         src/util/file-util.cpp
         src/util/image-util.cpp
         src/g-code.cpp
+        src/util/serial.cpp
+        src/cnc-controller.cpp
         src/edge-detection.cpp
         src/main.cpp)
 
