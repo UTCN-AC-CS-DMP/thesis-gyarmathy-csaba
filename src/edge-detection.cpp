@@ -227,55 +227,50 @@ void EdgeDetection::contour_wrapper(cv::Mat& source) {
 }
 
 void EdgeDetection::generate_gcode_holes(const std::string& filename,
-                                         const cv::Mat& source, float scale,
-                                         float zHeight, float feedRate) {
-  std::ofstream file(filename);
+    const cv::Mat& source, float scale,
+    float zHeight, float feedRate) {
+    std::ofstream file(filename);
 
-  file << "G90 ; Set to absolute positioning\n";
-  file << "G21 ; Set to millimeters\n";
-  file << "G92 X0 Y0 Z0 ; Set current position to origin\n";
-  file << "G1 F" << feedRate << " ; Set feed rate\n";
-  file << "G1 Z" << zHeight << " ; Move to initial Z height\n";
+    file << "G21 ; Set to millimeters\n";
+    file << "G90 ; Set to absolute positioning\n";
+    file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
+    file << "M300 S30.00 ; Pen down\n";
 
-  // Trace the outer contour
-  const auto& outerContour = contour_points;
-  if (outerContour.size() >= 3)  // Ensure there are enough points
-  {
-    // Move to the starting point of the outer contour
-    file << "G00 X" << outerContour[1].x * scale << " Y"
-         << outerContour[1].y * scale << '\n';
+    // Iterate through outer contour and holes
+    std::vector<std::vector<cv::Point>> contours;
+    contours.push_back(contour_points); // Add outer contour
+    contours.insert(contours.end(), holes.begin(), holes.end()); // Add holes
 
-    // Trace the outer contour (excluding the first and last points)
-    for (size_t i = 2; i < outerContour.size() - 1; ++i) {
-      const auto& point = outerContour[i];
-      file << "G01 X" << point.x * scale << " Y" << -point.y * scale << '\n';
+    // Iterate through all contours
+    for (const auto& contour : contours) {
+        if (contour.size() < 3) // Ensure there are enough points
+            continue;
+
+        // Move to the starting point of the contour
+        const auto& start = contour.front();
+        file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
+
+        // Trace the contour (excluding the first point)
+        for (size_t i = 1; i < contour.size(); ++i) {
+            const auto& point = contour[i];
+            file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F" << feedRate << '\n';
+        }
+
+        // Lift the pen after tracing the contour
+        file << "M300 S50.00 ; Pen up\n";
     }
-  }
 
-  // Trace the inner holes
-  for (const auto& hole : holes) {
-    if (hole.size() >= 3)  // Ensure there are enough points
-    {
-      // Move to the starting point of the hole contour
-      file << "G00 X" << hole[1].x * scale << " Y" << -hole[1].y * scale << '\n';
+    // Write final G-code commands
+    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
+    file << "G1 X0 Y0 F3500.00 ; Go home\n";
+    file << "M18 ; Drives off\n";
 
-      // Trace the hole contour (excluding the first and last points)
-      for (size_t i = 2; i < hole.size() - 1; ++i) {
-        const auto& point = hole[i];
-        file << "G01 X" << point.x * scale << " Y" << -point.y * scale << '\n';
-      }
-    }
-  }
+    // Close the file
+    file.close();
 
-  // Write final G-code commands
-  file << "G1 Z" << zHeight << " ; Move to safe Z height\n";
-  file << "M2 ; End of program\n";
-
-  // Close the file
-  file.close();
-
-  std::cout << "G-code file generated: " << filename << std::endl;
+    std::cout << "G-code file generated: " << filename << std::endl;
 }
+
 
 cv::Mat EdgeDetection::canny(const cv::Mat& img) {
   cv::Mat img_gray;
