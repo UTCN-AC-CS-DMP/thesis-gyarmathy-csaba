@@ -23,7 +23,7 @@ void showMainMenu() {
 // Function to display the contour menu
 void showContourMenu(const std::string& filename) {
   std::cout << "\n" << filename << " loaded!\n";
-  std::cout << "1 - Generate G-code\n";
+  std::cout << "1 - Trace contour\n";
   std::cout << "2 - Load another file\n";
   std::cout << "3 - CNC Operations\n";
   std::cout << "4 - Back\n";

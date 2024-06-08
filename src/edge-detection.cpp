@@ -234,7 +234,6 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
     file << "G21 ; Set to millimeters\n";
     file << "G90 ; Set to absolute positioning\n";
     file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
-    file << "M300 S30.00 ; Pen down\n";
 
     // Iterate through outer contour and holes
     std::vector<std::vector<cv::Point>> contours;
@@ -250,6 +249,9 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
         const auto& start = contour.front();
         file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
 
+        // Pen down command after the first command of each border segment
+        file << "M300 S30.00 ; Pen down\n";
+
         // Trace the contour (excluding the first point)
         for (size_t i = 1; i < contour.size(); ++i) {
             const auto& point = contour[i];
@@ -257,7 +259,7 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
         }
 
         // Lift the pen after tracing the contour
-        file << "\nM300 S50.00 ; Pen up\n";
+        file << "M300 S50.00 ; Pen up\n";
     }
 
     // Write final G-code commands

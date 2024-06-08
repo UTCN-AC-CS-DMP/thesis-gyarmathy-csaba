@@ -31,6 +31,7 @@ private:
     size_t current_line_index;
     std::atomic<bool> streaming;
     std::atomic<bool> stop_requested;
+    std::atomic<bool> return_home_requested;
 };
 
 #endif // CNC_CONTROLLER_HH
