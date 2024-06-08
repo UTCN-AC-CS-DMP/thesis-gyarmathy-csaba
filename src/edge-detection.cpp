@@ -227,8 +227,8 @@ void EdgeDetection::contour_wrapper(cv::Mat& source) {
 }
 
 void EdgeDetection::generate_gcode_holes(const std::string& filename,
-    const cv::Mat& source, float scale,
-    float zHeight, float feedRate) {
+                                         const cv::Mat& source, float scale,
+                                         float zHeight, float feedRate) {
     std::ofstream file(filename);
 
     file << "G21 ; Set to millimeters\n";
@@ -257,7 +257,7 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
         }
 
         // Lift the pen after tracing the contour
-        file << "M300 S50.00 ; Pen up\n";
+        file << "\nM300 S50.00 ; Pen up\n";
     }
 
     // Write final G-code commands
