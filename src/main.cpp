@@ -82,7 +82,22 @@ void cncOptions(CNCController& cnc_controller) {
             break;
         }
         case 3: {
-            cnc_controller.stream();
+            std::thread streamThread(&CNCController::stream, &cnc_controller);
+
+            std::string input;
+            std::cout << "CNC streaming started. Type 's' to interrupt." << std::endl;
+            std::cin >> input;
+
+            if (input == "s") {
+                cnc_controller.requestStop();
+                streamThread.join(); // Wait for the thread to finish
+                std::cout << "CNC operation interrupted and stopped." << std::endl;
+            }
+            else {
+                streamThread.join(); // Wait for the thread to finish normally
+                std::cout << "CNC operation completed." << std::endl;
+            }
+
             break;
         }
         case 4: {
@@ -97,6 +112,7 @@ void cncOptions(CNCController& cnc_controller) {
         }
     } while (cncChoice != 5);
 }
+
 
 
 int main() {
@@ -126,22 +142,19 @@ int main() {
 
                 switch (choice) {
                 case 1: {
-                    // Calculate the boundary
                     std::vector<std::pair<int, int>> boundary = edge_detection.calculate_perimeter(img);
                     cv::Mat canny_boundary = edge_detection.canny(img);
                     cv::Mat_<uint8_t> canny_edge = edge_detection.canny_edge_detection(img);
 
                     edge_detection.contour_wrapper(img);
 
-                    // Generate the G-code
-                    gcode.generate_gcode(boundary, "basic.gcode");
+                    //gcode.generate_gcode(boundary, "basic.gcode");
                     edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0, 100.0);
-                    edge_detection.generate_canny_gcode(canny_edge, "canny.gcode");
+                    //edge_detection.generate_canny_gcode(canny_edge, "canny.gcode");
 
                     cv::waitKey(0);
                     cv::destroyAllWindows();
 
-                    // Jump to CNC operations
                     cncOptions(cnc_controller);
                     break;
                 }

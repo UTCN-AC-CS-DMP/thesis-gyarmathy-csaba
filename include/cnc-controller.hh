@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <string>
 #include <vector>
+#include <atomic>
 
 class CNCController {
 public:
@@ -15,6 +16,7 @@ public:
     void stream();
     void returnHome();
     void stop();
+    void requestStop();
 
 private:
     void openSerialPort();
@@ -27,7 +29,8 @@ private:
     std::string port_name;
     std::vector<std::string> gcode_lines;
     size_t current_line_index;
-    bool streaming;
+    std::atomic<bool> streaming;
+    std::atomic<bool> stop_requested;
 };
 
 #endif // CNC_CONTROLLER_HH
