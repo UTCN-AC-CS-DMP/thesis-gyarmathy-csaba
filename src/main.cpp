@@ -9,6 +9,7 @@
 #include "cnc-controller.hh"
 #include "edge-detection.hh"
 #include "file-util.hh"
+#include "serial-util.hh"
 #include "g-code.hh"
 
 // Function to display the main menu
@@ -39,149 +40,135 @@ void showGCodeMenu() {
   std::cout << "Enter your choice: ";
 }
 
-void cncOptions(int choice) {}
+void cncOptions(CNCController& cnc_controller) {
+    int cncChoice;
+    do {
+        showGCodeMenu();
+        std::cin >> cncChoice;
+
+        switch (cncChoice) {
+        case 1: {
+            std::vector<std::string> ports = listSerialPorts();
+            if (ports.empty()) {
+                std::cout << "No available serial ports found.\n";
+                break;
+            }
+
+            std::cout << "Available serial ports:\n";
+            for (size_t i = 0; i < ports.size(); ++i) {
+                std::cout << (i + 1) << ": " << ports[i] << "\n";
+            }
+
+            int portChoice;
+            std::cout << "Select a serial port by number: ";
+            std::cin >> portChoice;
+
+            if (portChoice < 1 || portChoice > ports.size()) {
+                std::cout << "Invalid choice. Please select a valid port number.\n";
+            }
+            else {
+                cnc_controller.setPortName(ports[portChoice - 1]);
+            }
+            break;
+        }
+        case 2: {
+            std::string gcodeFilePath = FileUtil::getSingleFileAbsPath();
+            if (!gcodeFilePath.empty()) {
+                cnc_controller.loadGCode(gcodeFilePath);
+            }
+            else {
+                std::cout << "No file selected or file selection cancelled.\n";
+            }
+            break;
+        }
+        case 3: {
+            cnc_controller.stream();
+            break;
+        }
+        case 4: {
+            cnc_controller.returnHome();
+            break;
+        }
+        case 5:
+            std::cout << "Exiting CNC operations menu." << std::endl;
+            break;
+        default:
+            std::cout << "Invalid choice. Please enter a number between 1 and 5." << std::endl;
+        }
+    } while (cncChoice != 5);
+}
+
 
 int main() {
-  int choice;
-  std::string abs_image_path;
-  cv::Mat_<uint8_t> img;
-  EdgeDetection edge_detection;
-  GCode gcode;
-  CNCController cnc_controller;
+    int choice;
+    std::string abs_image_path;
+    cv::Mat_<uint8_t> img;
+    EdgeDetection edge_detection;
+    GCode gcode;
+    CNCController cnc_controller;
 
-  while (true) {
-    showMainMenu();
-    std::cin >> choice;
+    while (true) {
+        showMainMenu();
+        std::cin >> choice;
 
-    switch (choice) {
-      case 1: {
-        abs_image_path = FileUtil::getSingleFileAbsPath();
-        if (!abs_image_path.empty()) {
-          img = cv::imread(abs_image_path, cv::IMREAD_GRAYSCALE);
-          if (img.empty()) {
-            std::cerr << "Failed to open the image. Exiting" << std::endl;
-            return 1;
-          }
-          std::filesystem::path p(abs_image_path);
-          showContourMenu(p.filename().string());
-          std::cin >> choice;
+        switch (choice) {
+        case 1: {
+            abs_image_path = FileUtil::getSingleFileAbsPath();
+            if (!abs_image_path.empty()) {
+                img = cv::imread(abs_image_path, cv::IMREAD_GRAYSCALE);
+                if (img.empty()) {
+                    std::cerr << "Failed to open the image. Exiting" << std::endl;
+                    return 1;
+                }
+                std::filesystem::path p(abs_image_path);
+                showContourMenu(p.filename().string());
+                std::cin >> choice;
 
-          switch (choice) {
-            case 1: {
-              // Calculate the boundary
-              std::vector<std::pair<int, int>> boundary =
-                  edge_detection.calculate_perimeter(img);
-              cv::Mat canny_boundary = edge_detection.canny(img);
-              cv::Mat_<uint8_t> canny_edge =
-                  edge_detection.canny_edge_detection(img);
+                switch (choice) {
+                case 1: {
+                    // Calculate the boundary
+                    std::vector<std::pair<int, int>> boundary = edge_detection.calculate_perimeter(img);
+                    cv::Mat canny_boundary = edge_detection.canny(img);
+                    cv::Mat_<uint8_t> canny_edge = edge_detection.canny_edge_detection(img);
 
-              edge_detection.contour_wrapper(img);
+                    edge_detection.contour_wrapper(img);
 
-              // Generate the G-code
-              gcode.generate_gcode(boundary, "basic.gcode");
-              edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0,
-                                                  100.0);
-              edge_detection.generate_canny_gcode(canny_edge, "canny.gcode");
+                    // Generate the G-code
+                    gcode.generate_gcode(boundary, "basic.gcode");
+                    edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0, 100.0);
+                    edge_detection.generate_canny_gcode(canny_edge, "canny.gcode");
 
-              cv::waitKey(0);
-              cv::destroyAllWindows();
-              break;
+                    cv::waitKey(0);
+                    cv::destroyAllWindows();
+
+                    // Jump to CNC operations
+                    cncOptions(cnc_controller);
+                    break;
+                }
+                case 2:
+                    continue;
+                case 3:
+                    cncOptions(cnc_controller);
+                    break;
+                case 4:
+                    return 0;
+                default:
+                    std::cout << "Invalid choice. Please enter a number between 1 and 4.\n";
+                    break;
+                }
             }
-            case 2:
-              continue;
-            case 3: {
-                int cncChoice;
-                do {
-                    showGCodeMenu();
-                    std::cin >> cncChoice;
-
-                    switch (cncChoice) {
-                        case 1: {
-                            std::string portname;
-                            std::cout << "Enter the serial port (e.g., COM1 or /dev/ttyUSB0): ";
-                            std::cin >> portname;
-                            cnc_controller.setPortName(portname);
-                            break;
-                        }
-                        case 2: {
-                            std::string gcodeFilePath;
-                            std::cout << "Enter the path to the G-code file: ";
-                            std::cin >> gcodeFilePath;
-                            cnc_controller.loadGCode(gcodeFilePath);
-                            break;
-                        }
-                        case 3: {
-                            cnc_controller.stream();
-                            break;
-                        }
-                        case 4: {
-                            cnc_controller.returnHome();
-                            break;
-                        }
-                        case 5:
-                            std::cout << "Exiting CNC operations menu." << std::endl;
-                            break;
-                        default:
-                            std::cout << "Invalid choice. Please enter a number between 1 and 5." << std::endl;
-                    }
-                } while (cncChoice != 5);
-              break;
-            }
-            case 4:
-              return 0;
-            default:
-              std::cout
-                  << "Invalid choice. Please enter a number between 1 and 5.\n";
-              break;
-          }
+            break;
         }
-        break;
-      }
-      case 2: {
-                        int cncChoice;
-                do {
-                    showGCodeMenu();
-                    std::cin >> cncChoice;
-
-                    switch (cncChoice) {
-                        case 1: {
-                            std::string portname;
-                            std::cout << "Enter the serial port (e.g., COM1 or /dev/ttyUSB0): ";
-                            std::cin >> portname;
-                            cnc_controller.setPortName(portname);
-                            break;
-                        }
-                        case 2: {
-                            std::string gcodeFilePath;
-                            std::cout << "Enter the path to the G-code file: ";
-                            std::cin >> gcodeFilePath;
-                            cnc_controller.loadGCode(gcodeFilePath);
-                            break;
-                        }
-                        case 3: {
-                            cnc_controller.stream();
-                            break;
-                        }
-                        case 4: {
-                            cnc_controller.returnHome();
-                            break;
-                        }
-                        case 5:
-                            std::cout << "Exiting CNC operations menu." << std::endl;
-                            break;
-                        default:
-                            std::cout << "Invalid choice. Please enter a number between 1 and 5." << std::endl;
-                    }
-                } while (cncChoice != 5);
-        break;
-      }
-      case 3:
-        return 0;
-      default:
-        std::cout << "Invalid choice. Please enter a number between 1 and 3.\n";
-        break;
+        case 2:
+            cncOptions(cnc_controller);
+            break;
+        case 3:
+            return 0;
+        default:
+            std::cout << "Invalid choice. Please enter a number between 1 and 3.\n";
+            break;
+        }
     }
-  }
 
-  return 0;
+    return 0;
 }
