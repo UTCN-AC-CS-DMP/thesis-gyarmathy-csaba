@@ -64,6 +64,15 @@ void CNCController::stream() {
     std::cout << "CNC operation completed." << std::endl;
 }
 
+std::string CNCController::readResponse() {
+    boost::asio::streambuf buf;
+    boost::asio::read_until(*serial_port, buf, '\n');
+    std::istream is(&buf);
+    std::string response;
+    std::getline(is, response);
+    return response;
+}
+
 void CNCController::sendGCodeLine(const std::string& line) {
     if (!serial_port) {
         std::cerr << "Serial port is not open." << std::endl;
@@ -72,6 +81,12 @@ void CNCController::sendGCodeLine(const std::string& line) {
 
     boost::asio::write(*serial_port, boost::asio::buffer(line + '\n'));
     std::cout << "Sent: " << line << std::endl;
+
+    std::string response = readResponse();
+    while (response.find("ok") == std::string::npos) {
+        response = readResponse();
+    }
+    std::cout << "Received: " << response << std::endl;
 }
 
 void CNCController::returnHome() {

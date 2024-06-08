@@ -20,6 +20,7 @@ private:
     void openSerialPort();
     void closeSerialPort();
     void sendGCodeLine(const std::string& line);
+    std::string readResponse();
 
     boost::asio::io_service io_service;
     boost::asio::serial_port* serial_port;
