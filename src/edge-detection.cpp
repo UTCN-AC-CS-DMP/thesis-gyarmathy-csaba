@@ -465,3 +465,96 @@ void EdgeDetection::generate_canny_gcode(cv::Mat_<uint8_t>& edges,
 
   file.close();
 }
+
+
+bool EdgeDetection::approx_equal(float a, float b) {
+    return std::fabs(a - b) < epsilon;
+}
+
+std::vector<std::vector<cv::Point>> EdgeDetection::detect_straight_segments(const std::vector<cv::Point>& contour) {
+    std::vector<std::vector<cv::Point>> segments;
+    size_t n = contour.size();
+    if (n < 2) return segments;
+
+    std::vector<cv::Point> current_segment;
+    current_segment.push_back(contour[0]);
+
+    for (size_t i = 1; i < n; ++i) {
+        cv::Point prev = contour[i - 1];
+        cv::Point curr = contour[i];
+
+        // Add current point to the segment
+        current_segment.push_back(curr);
+
+        // Determine the direction vector between the previous two points
+        float dx = static_cast<float>(curr.x - prev.x);
+        float dy = static_cast<float>(curr.y - prev.y);
+
+        // Calculate the direction for the next point
+        float next_dx = static_cast<float>(contour[(i + 1) % n].x - curr.x);
+        float next_dy = static_cast<float>(contour[(i + 1) % n].y - curr.y);
+
+        // Check if the direction is changing
+        if (!approx_equal(dx * next_dy, dy * next_dx)) {
+            segments.push_back(current_segment);
+            current_segment.clear();
+            current_segment.push_back(curr);
+        }
+    }
+    // Add the last segment
+    if (!current_segment.empty()) {
+        segments.push_back(current_segment);
+    }
+
+    return segments;
+}
+
+void EdgeDetection::generate_gcode_optimized(const std::string& filename, const cv::Mat& source, float scale, float zHeight, float feedRate) {
+    std::ofstream file(filename);
+
+    file << "G21 ; Set to millimeters\n";
+    file << "G90 ; Set to absolute positioning\n";
+    file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
+
+    // Iterate through outer contour and holes
+    std::vector<std::vector<cv::Point>> contours;
+    contours.push_back(contour_points); // Add outer contour
+    contours.insert(contours.end(), holes.begin(), holes.end()); // Add holes
+
+    // Iterate through all contours
+    for (const auto& contour : contours) {
+        if (contour.size() < 3) // Ensure there are enough points
+            continue;
+
+        // Detect straight line segments in the contour
+        auto segments = detect_straight_segments(contour);
+
+        // Pen down before starting the first segment
+        file << "M300 S30.00 ; Pen down\n";
+
+        for (const auto& segment : segments) {
+            if (segment.size() < 2) continue;
+
+            // Move to the starting point of the segment
+            const auto& start = segment.front();
+            file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
+
+            // Move to the end point of the segment (assuming it's a straight line)
+            const auto& end = segment.back();
+            file << "G1 X" << end.x * scale << " Y" << -end.y * scale << " F" << feedRate << '\n';
+        }
+
+        // Lift the pen after tracing the last segment
+        file << "M300 S50.00 ; Pen up\n";
+    }
+
+    // Write final G-code commands
+    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
+    file << "G1 X0 Y0 F3500.00 ; Go home\n";
+    file << "M18 ; Drives off\n";
+
+    // Close the file
+    file.close();
+
+    std::cout << "Optimized G-code file generated: " << filename << std::endl;
+}

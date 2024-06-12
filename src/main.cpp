@@ -148,7 +148,9 @@ int main() {
 
               // gcode.generate_gcode(boundary, "basic.gcode");
               edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0,
-                                                  100.0);
+                                                  3500.0);
+              edge_detection.generate_gcode_optimized("optimized.gcode", img,
+                                                      0.1, 1.0, 3500.0);
               // edge_detection.generate_canny_gcode(canny_edge, "canny.gcode");
 
               cv::waitKey(0);
