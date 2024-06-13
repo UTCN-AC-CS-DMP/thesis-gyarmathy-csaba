@@ -205,18 +205,37 @@ void EdgeDetection::draw_contour(const cv::Mat& source) {
 }
 
 void EdgeDetection::contour_wrapper(cv::Mat& source) {
+  // Ensure the image is grayscale
+  cv::Mat gray;
+  if (source.channels() > 1) {
+    cv::cvtColor(source, gray, cv::COLOR_BGR2GRAY);
+  } else {
+    gray = source;
+  }
+
+  // Apply Canny edge detection
+  cv::Mat edges = canny(gray);
+
+  // Initialize output images for line detection
+  cv::Mat dst, cdst, cdstP;
+  cv::cvtColor(edges, dst, cv::COLOR_GRAY2BGR);
+  cdst = dst.clone();
+  cdstP = dst.clone();
+
+  // Detect and draw lines using standard and probabilistic Hough transforms
+  detect_lines_standard(edges, cdst);
+  detect_lines_probabilistic(edges, cdstP);
+  cv::imshow("Standard Hough", cdst);
+  cv::imshow("Probabilistic Hough", cdstP);
+
   hole_labels = cv::Mat::zeros(source.rows, source.cols, CV_8UC1);
 
   for (int i = 0; i < source.rows; ++i) {
     for (int j = 0; j < source.cols; ++j) {
-      // If the pixel is not white and the outer contour points are not traced
-      // yet
-      if (source.at<uint8_t>(i, j) != 255 && !contour_points.size()) {
+      if (source.at<uint8_t>(i, j) != 255 && contour_points.empty()) {
         trace_contour(source, j, i);
-      }
-      // If the pixel is white and the hole is not labeled
-      else if (source.at<uint8_t>(i, j) == 255 &&
-               !hole_labels.at<uint8_t>(i, j)) {
+      } else if (source.at<uint8_t>(i, j) == 255 &&
+                 !hole_labels.at<uint8_t>(i, j)) {
         fill_label(source, j, i);
         holes.push_back(trace_hole(source, j, i));
       }
@@ -224,55 +243,57 @@ void EdgeDetection::contour_wrapper(cv::Mat& source) {
   }
 
   draw_contour(source);
+  cv::waitKey(0);
 }
 
 void EdgeDetection::generate_gcode_holes(const std::string& filename,
                                          const cv::Mat& source, float scale,
                                          float zHeight, float feedRate) {
-    std::ofstream file(filename);
+  std::ofstream file(filename);
 
-    file << "G21 ; Set to millimeters\n";
-    file << "G90 ; Set to absolute positioning\n";
-    file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
+  file << "G21 ; Set to millimeters\n";
+  file << "G90 ; Set to absolute positioning\n";
+  file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
 
-    // Iterate through outer contour and holes
-    std::vector<std::vector<cv::Point>> contours;
-    contours.push_back(contour_points); // Add outer contour
-    contours.insert(contours.end(), holes.begin(), holes.end()); // Add holes
+  // Iterate through outer contour and holes
+  std::vector<std::vector<cv::Point>> contours;
+  contours.push_back(contour_points);  // Add outer contour
+  contours.insert(contours.end(), holes.begin(), holes.end());  // Add holes
 
-    // Iterate through all contours
-    for (const auto& contour : contours) {
-        if (contour.size() < 3) // Ensure there are enough points
-            continue;
+  // Iterate through all contours
+  for (const auto& contour : contours) {
+    if (contour.size() < 3)  // Ensure there are enough points
+      continue;
 
-        // Move to the starting point of the contour
-        const auto& start = contour.front();
-        file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
+    // Move to the starting point of the contour
+    const auto& start = contour.front();
+    file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F"
+         << feedRate << '\n';
 
-        // Pen down command after the first command of each border segment
-        file << "M300 S30.00 ; Pen down\n";
+    // Pen down command after the first command of each border segment
+    file << "M300 S30.00 ; Pen down\n";
 
-        // Trace the contour (excluding the first point)
-        for (size_t i = 1; i < contour.size(); ++i) {
-            const auto& point = contour[i];
-            file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F" << feedRate << '\n';
-        }
-
-        // Lift the pen after tracing the contour
-        file << "M300 S50.00 ; Pen up\n";
+    // Trace the contour (excluding the first point)
+    for (size_t i = 1; i < contour.size(); ++i) {
+      const auto& point = contour[i];
+      file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F"
+           << feedRate << '\n';
     }
 
-    // Write final G-code commands
-    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
-    file << "G1 X0 Y0 F3500.00 ; Go home\n";
-    file << "M18 ; Drives off\n";
+    // Lift the pen after tracing the contour
+    file << "M300 S50.00 ; Pen up\n";
+  }
 
-    // Close the file
-    file.close();
+  // Write final G-code commands
+  file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
+  file << "G1 X0 Y0 F3500.00 ; Go home\n";
+  file << "M18 ; Drives off\n";
 
-    std::cout << "G-code file generated: " << filename << std::endl;
+  // Close the file
+  file.close();
+
+  std::cout << "G-code file generated: " << filename << std::endl;
 }
-
 
 cv::Mat EdgeDetection::canny(const cv::Mat& img) {
   cv::Mat img_gray;
@@ -419,142 +440,170 @@ cv::Mat_<uint8_t> EdgeDetection::canny_edge_detection(cv::Mat_<uint8_t>& img) {
   return edgeMap;
 }
 
-void EdgeDetection::generate_canny_gcode(cv::Mat_<uint8_t>& edges,
-                                         std::string filename) {
-  // Find contours
-  std::vector<std::vector<cv::Point>> contours;
-  cv::findContours(edges.clone(), contours, cv::RETR_EXTERNAL,
-                   cv::CHAIN_APPROX_SIMPLE);
-
-  // Find the largest contour (boundary of the image)
-  int maxArea = 0;
-  size_t maxIdx = 0;
-  for (size_t i = 0; i < contours.size(); i++) {
-    int area = contourArea(contours[i]);
-    if (area > maxArea) {
-      maxArea = area;
-      maxIdx = i;
-    }
-  }
-
-  // Extract the boundary points
-  std::vector<cv::Point>& boundary = contours[maxIdx];
-
-  // Generate G-code file
+void EdgeDetection::generate_canny_gcode(const std::string& filename,
+                                         const cv::Mat_<uint8_t>& edgeMap,
+                                         float scale, float zHeight,
+                                         float feedRate) {
   std::ofstream file(filename);
 
-  // G-code header
-  file << "G90 ; Set to absolute positioning mode\n";
-  file << "G21 ; Set units to millimeters\n";
-  file << "G28 ; Home all axes\n";
-  file << "\n";
+  file << "G21 ; Set to millimeters\n";
+  file << "G90 ; Set to absolute positioning\n";
+  file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
 
-  // Set starting point as G00 command
-  file << "G00 X" << boundary[0].x << " Y" << -boundary[0].y << std::endl;
+  std::vector<std::vector<cv::Point>> contours;
+  cv::findContours(edgeMap, contours, cv::RETR_EXTERNAL,
+                   cv::CHAIN_APPROX_SIMPLE);
 
-  // Generate G01 commands for boundary scanning
-  for (size_t i = 1; i < boundary.size(); i++) {
-    file << "G01 X" << boundary[i].x << " Y" << -boundary[i].y << std::endl;
+  for (const auto& contour : contours) {
+    if (contour.size() < 3) continue;
+
+    const auto& start = contour.front();
+    file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F"
+         << feedRate << '\n';
+
+    file << "M300 S30.00 ; Pen down\n";
+
+    for (size_t i = 1; i < contour.size(); ++i) {
+      const auto& point = contour[i];
+      file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F"
+           << feedRate << '\n';
+    }
+
+    file << "M300 S50.00 ; Pen up\n";
   }
 
-  // G-code footer
-  file << "\n";
-  file << "M2 ; End of program\n";
-
-  std::cout << "G-code file generated: " << filename << std::endl;
+  file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
+  file << "G1 X0 Y0 F3500.00 ; Go home\n";
+  file << "M18 ; Drives off\n";
 
   file.close();
-}
 
+  std::cout << "Canny-based G-code file generated: " << filename << std::endl;
+}
 
 bool EdgeDetection::approx_equal(float a, float b) {
-    return std::fabs(a - b) < epsilon;
+  return std::fabs(a - b) < 0.5;
 }
 
-std::vector<std::vector<cv::Point>> EdgeDetection::detect_straight_segments(const std::vector<cv::Point>& contour) {
-    std::vector<std::vector<cv::Point>> segments;
-    size_t n = contour.size();
-    if (n < 2) return segments;
+std::vector<std::vector<cv::Point>> EdgeDetection::detect_straight_segments(
+    const std::vector<cv::Point>& contour) {
+  std::vector<std::vector<cv::Point>> segments;
+  size_t n = contour.size();
+  if (n < 2) return segments;
 
-    std::vector<cv::Point> current_segment;
-    current_segment.push_back(contour[0]);
+  std::vector<cv::Point> current_segment;
+  current_segment.push_back(contour[0]);
 
-    for (size_t i = 1; i < n; ++i) {
-        cv::Point prev = contour[i - 1];
-        cv::Point curr = contour[i];
+  for (size_t i = 1; i < n; ++i) {
+    cv::Point prev = contour[i - 1];
+    cv::Point curr = contour[i];
 
-        // Add current point to the segment
-        current_segment.push_back(curr);
+    current_segment.push_back(curr);
 
-        // Determine the direction vector between the previous two points
-        float dx = static_cast<float>(curr.x - prev.x);
-        float dy = static_cast<float>(curr.y - prev.y);
+    // Determine the direction vector between the previous two points
+    float dx = static_cast<float>(curr.x - prev.x);
+    float dy = static_cast<float>(curr.y - prev.y);
 
-        // Calculate the direction for the next point
-        float next_dx = static_cast<float>(contour[(i + 1) % n].x - curr.x);
-        float next_dy = static_cast<float>(contour[(i + 1) % n].y - curr.y);
+    // Calculate the direction for the next point
+    float next_dx = static_cast<float>(contour[(i + 1) % n].x - curr.x);
+    float next_dy = static_cast<float>(contour[(i + 1) % n].y - curr.y);
 
-        // Check if the direction is changing
-        if (!approx_equal(dx * next_dy, dy * next_dx)) {
-            segments.push_back(current_segment);
-            current_segment.clear();
-            current_segment.push_back(curr);
-        }
+    // Check if the direction is changing
+    if (!approx_equal(dx * next_dy, dy * next_dx)) {
+      segments.push_back(current_segment);
+      current_segment.clear();
+      current_segment.push_back(curr);
     }
-    // Add the last segment
-    if (!current_segment.empty()) {
-        segments.push_back(current_segment);
-    }
+  }
+  // Add the last segment
+  if (!current_segment.empty()) {
+    segments.push_back(current_segment);
+  }
 
-    return segments;
+  return segments;
 }
 
-void EdgeDetection::generate_gcode_optimized(const std::string& filename, const cv::Mat& source, float scale, float zHeight, float feedRate) {
-    std::ofstream file(filename);
+void EdgeDetection::generate_gcode_optimized(const std::string& filename,
+                                             const cv::Mat& source, float scale,
+                                             float zHeight, float feedRate) {
+  std::ofstream file(filename);
 
-    file << "G21 ; Set to millimeters\n";
-    file << "G90 ; Set to absolute positioning\n";
-    file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
+  file << "G21 ; Set to millimeters\n";
+  file << "G90 ; Set to absolute positioning\n";
+  file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
 
-    // Iterate through outer contour and holes
-    std::vector<std::vector<cv::Point>> contours;
-    contours.push_back(contour_points); // Add outer contour
-    contours.insert(contours.end(), holes.begin(), holes.end()); // Add holes
+  // Iterate through outer contour and holes
+  std::vector<std::vector<cv::Point>> contours;
+  contours.push_back(contour_points);  // Add outer contour
+  contours.insert(contours.end(), holes.begin(), holes.end());  // Add holes
 
-    // Iterate through all contours
-    for (const auto& contour : contours) {
-        if (contour.size() < 3) // Ensure there are enough points
-            continue;
+  // Iterate through all contours
+  for (const auto& contour : contours) {
+    if (contour.size() < 3)  // Ensure there are enough points
+      continue;
 
-        // Detect straight line segments in the contour
-        auto segments = detect_straight_segments(contour);
+    // Detect straight line segments in the contour
+    auto segments = detect_straight_segments(contour);
 
-        // Move to the starting point of the first segment
-        const auto& start = segments.front().front();
-        file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
+    // Move to the starting point of the first segment
+    const auto& start = segments.front().front();
+    file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F"
+         << feedRate << '\n';
 
-        // Pen down after moving to the starting point of the contour
-        file << "M300 S30.00 ; Pen down\n";
+    // Pen down after moving to the starting point of the contour
+    file << "M300 S30.00 ; Pen down\n";
 
-        for (const auto& segment : segments) {
-            if (segment.size() < 2) continue;
+    for (const auto& segment : segments) {
+      if (segment.size() < 2) continue;
 
-            // Move to the end point of the segment (assuming it's a straight line)
-            const auto& end = segment.back();
-            file << "G1 X" << end.x * scale << " Y" << -end.y * scale << " F" << feedRate << '\n';
-        }
-
-        // Lift the pen after tracing the last segment
-        file << "M300 S50.00 ; Pen up\n";
+      // Move to the end point of the segment
+      const auto& end = segment.back();
+      file << "G1 X" << end.x * scale << " Y" << -end.y * scale << " F"
+           << feedRate << '\n';
     }
 
-    // Write final G-code commands
-    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
-    file << "G1 X0 Y0 F3500.00 ; Go home\n";
-    file << "M18 ; Drives off\n";
+    // Lift the pen after tracing the last segment
+    file << "M300 S50.00 ; Pen up\n";
+  }
 
-    // Close the file
-    file.close();
+  // Write final G-code commands
+  file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
+  file << "G1 X0 Y0 F3500.00 ; Go home\n";
+  file << "M18 ; Drives off\n";
 
-    std::cout << "Optimized G-code file generated: " << filename << std::endl;
+  // Close the file
+  file.close();
+
+  std::cout << "Optimized G-code file generated: " << filename << std::endl;
+}
+
+// Built-in OpenCV functions for line detection
+void EdgeDetection::detect_lines_standard(const cv::Mat& edges,
+                                          cv::Mat& output) {
+  std::vector<cv::Vec2f> lines;
+  cv::HoughLines(edges, lines, 1, PI_20_PREC / 180, 150, 0, 0);
+
+  for (size_t i = 0; i < lines.size(); i++) {
+    float rho = lines[i][0], theta = lines[i][1];
+    cv::Point pt1, pt2;
+    double a = cos(theta), b = sin(theta);
+    double x0 = a * rho, y0 = b * rho;
+    pt1.x = cvRound(x0 + 1000 * (-b));
+    pt1.y = cvRound(y0 + 1000 * (a));
+    pt2.x = cvRound(x0 - 1000 * (-b));
+    pt2.y = cvRound(y0 - 1000 * (a));
+    cv::line(output, pt1, pt2, cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+  }
+}
+
+void EdgeDetection::detect_lines_probabilistic(const cv::Mat& edges,
+                                               cv::Mat& output) {
+  std::vector<cv::Vec4i> lines;
+  cv::HoughLinesP(edges, lines, 1, PI_20_PREC / 180, 50, 50, 10);
+
+  for (size_t i = 0; i < lines.size(); i++) {
+    cv::Vec4i l = lines[i];
+    cv::line(output, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]),
+             cv::Scalar(0, 0, 255), 2, cv::LINE_AA);
+  }
 }

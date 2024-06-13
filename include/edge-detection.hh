@@ -62,7 +62,9 @@ class EdgeDetection {
 
   cv::Mat_<uint8_t> canny_edge_detection(cv::Mat_<uint8_t>& img);
 
-  void generate_canny_gcode(cv::Mat_<uint8_t>& edges, std::string filename);
+  void generate_canny_gcode(const std::string& filename,
+                            const cv::Mat_<uint8_t>& edgeMap, float scale,
+                            float zHeight, float feedRate);
 
   bool approx_equal(float a, float b);
 
@@ -72,6 +74,9 @@ class EdgeDetection {
   void generate_gcode_optimized(const std::string& filename,
                                 const cv::Mat& source, float scale,
                                 float zHeight, float feedRate);
+
+  void detect_lines_standard(const cv::Mat& edges, cv::Mat& output);
+  void detect_lines_probabilistic(const cv::Mat& edges, cv::Mat& output);
 };
 
 #endif  // EDGE_DETECTION_HH
