@@ -1,6 +1,7 @@
 #ifndef EDGE_DETECTION_HH
 #define EDGE_DETECTION_HH
 
+#include <cmath>
 #include <cstdint>
 #include <fstream>
 #include <opencv2/highgui.hpp>
@@ -36,6 +37,8 @@ class EdgeDetection {
   std::vector<cv::Point> contour_points;
   std::vector<std::vector<cv::Point>> holes;
 
+  const float epsilon = 1e-6;
+
  public:
   std::vector<std::pair<int, int>> calculate_perimeter(
       const cv::Mat_<uint8_t>& img);
@@ -59,7 +62,21 @@ class EdgeDetection {
 
   cv::Mat_<uint8_t> canny_edge_detection(cv::Mat_<uint8_t>& img);
 
-  void generate_canny_gcode(cv::Mat_<uint8_t>& edges, std::string filename);
+  void generate_canny_gcode(const std::string& filename,
+                            const cv::Mat_<uint8_t>& edgeMap, float scale,
+                            float zHeight, float feedRate);
+
+  bool approx_equal(float a, float b);
+
+  std::vector<std::vector<cv::Point>> detect_straight_segments(
+      const std::vector<cv::Point>& contour);
+
+  void generate_gcode_optimized(const std::string& filename,
+                                const cv::Mat& source, float scale,
+                                float zHeight, float feedRate);
+
+  void detect_lines_standard(const cv::Mat& edges, cv::Mat& output);
+  void detect_lines_probabilistic(const cv::Mat& edges, cv::Mat& output);
 };
 
 #endif  // EDGE_DETECTION_HH
