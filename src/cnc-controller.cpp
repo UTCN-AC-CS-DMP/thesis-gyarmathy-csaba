@@ -53,7 +53,7 @@ void CNCController::loadGCode(const std::string& filepath) {
 void CNCController::stream() {
     if (!streaming) {
         streaming = true;
-        stop_requested = false;  // Reset stop request flag
+        stop_requested = false;
         std::cout << "Starting CNC operation..." << std::endl;
     }
 
@@ -67,8 +67,11 @@ void CNCController::stream() {
     }
 
     streaming = false;
-    std::cout << "CNC operation completed." << std::endl;
+    if (!stop_requested) {
+        std::cout << "CNC operation completed." << std::endl;
+    }
 }
+
 
 void CNCController::sendGCodeLine(const std::string& line) {
     if (!serial_port) {
@@ -107,8 +110,7 @@ void CNCController::returnHome() {
         "M300 S255 (turn off servo)",
         "G1 X0 Y0 F3500.00",
         "G1 Z0.00 F150.00 (go up to finished level)",
-        "G1 X0.00 Y0.00 F3500.00 (go home)",
-        "M18 (drives off)"
+        "G1 X0.00 Y0.00 F3500.00 (go home)"
     };
 
     for (const auto& cmd : homeCommands) {

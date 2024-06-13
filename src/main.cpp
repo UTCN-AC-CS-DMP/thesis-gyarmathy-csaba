@@ -95,6 +95,7 @@ void cncOptions(CNCController& cnc_controller) {
           streamThread.join();  // Wait for the thread to finish normally
           std::cout << "CNC operation completed." << std::endl;
         }
+        showGCodeMenu();
         break;
       }
       case 4: {

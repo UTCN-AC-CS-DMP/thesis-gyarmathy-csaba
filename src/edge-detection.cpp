@@ -474,7 +474,7 @@ void EdgeDetection::generate_canny_gcode(const std::string& filename,
 
   file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
   file << "G1 X0 Y0 F3500.00 ; Go home\n";
-  file << "M18 ; Drives off\n";
+  //file << "M18 ; Drives off\n";
 
   file.close();
 
@@ -569,7 +569,7 @@ void EdgeDetection::generate_gcode_optimized(const std::string& filename,
   // Write final G-code commands
   file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
   file << "G1 X0 Y0 F3500.00 ; Go home\n";
-  file << "M18 ; Drives off\n";
+  //file << "M18 ; Drives off\n";
 
   // Close the file
   file.close();
