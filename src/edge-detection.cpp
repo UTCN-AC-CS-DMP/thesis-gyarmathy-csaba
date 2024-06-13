@@ -529,15 +529,15 @@ void EdgeDetection::generate_gcode_optimized(const std::string& filename, const 
         // Detect straight line segments in the contour
         auto segments = detect_straight_segments(contour);
 
-        // Pen down before starting the first segment
+        // Move to the starting point of the first segment
+        const auto& start = segments.front().front();
+        file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
+
+        // Pen down after moving to the starting point of the contour
         file << "M300 S30.00 ; Pen down\n";
 
         for (const auto& segment : segments) {
             if (segment.size() < 2) continue;
-
-            // Move to the starting point of the segment
-            const auto& start = segment.front();
-            file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
 
             // Move to the end point of the segment (assuming it's a straight line)
             const auto& end = segment.back();
