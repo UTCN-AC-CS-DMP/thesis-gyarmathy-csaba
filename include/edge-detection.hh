@@ -67,6 +67,8 @@ class EdgeDetection {
                             float zHeight, float feedRate);
 
   bool approx_equal(float a, float b);
+  float norm(float x, float y);
+  float dot_product(float x1, float y1, float x2, float y2);
 
   std::vector<std::vector<cv::Point>> detect_straight_segments(
       const std::vector<cv::Point>& contour);

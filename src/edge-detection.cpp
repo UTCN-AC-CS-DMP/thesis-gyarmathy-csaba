@@ -482,45 +482,59 @@ void EdgeDetection::generate_canny_gcode(const std::string& filename,
 }
 
 bool EdgeDetection::approx_equal(float a, float b) {
-  return std::fabs(a - b) < 0.5;
+  return std::fabs(a - b) < epsilon;
 }
 
-std::vector<std::vector<cv::Point>> EdgeDetection::detect_straight_segments(
-    const std::vector<cv::Point>& contour) {
-  std::vector<std::vector<cv::Point>> segments;
-  size_t n = contour.size();
-  if (n < 2) return segments;
+float EdgeDetection::norm(float x, float y) {
+    return std::sqrt(x * x + y * y);
+}
 
-  std::vector<cv::Point> current_segment;
-  current_segment.push_back(contour[0]);
+float EdgeDetection::dot_product(float x1, float y1, float x2, float y2) {
+    return x1 * x2 + y1 * y2;
+}
 
-  for (size_t i = 1; i < n; ++i) {
-    cv::Point prev = contour[i - 1];
-    cv::Point curr = contour[i];
+std::vector<std::vector<cv::Point>> EdgeDetection::detect_straight_segments(const std::vector<cv::Point>& contour) {
+    std::vector<std::vector<cv::Point>> segments;
+    size_t n = contour.size();
+    if (n < 2) return segments;
 
-    current_segment.push_back(curr);
+    std::vector<cv::Point> current_segment;
+    current_segment.push_back(contour[0]);
 
-    // Determine the direction vector between the previous two points
-    float dx = static_cast<float>(curr.x - prev.x);
-    float dy = static_cast<float>(curr.y - prev.y);
+    for (size_t i = 1; i < n; ++i) {
+        cv::Point prev = contour[i - 1];
+        cv::Point curr = contour[i];
+        cv::Point next = contour[(i + 1) % n];
 
-    // Calculate the direction for the next point
-    float next_dx = static_cast<float>(contour[(i + 1) % n].x - curr.x);
-    float next_dy = static_cast<float>(contour[(i + 1) % n].y - curr.y);
+        current_segment.push_back(curr);
 
-    // Check if the direction is changing
-    if (!approx_equal(dx * next_dy, dy * next_dx)) {
-      segments.push_back(current_segment);
-      current_segment.clear();
-      current_segment.push_back(curr);
+        float dx = static_cast<float>(curr.x - prev.x);
+        float dy = static_cast<float>(curr.y - prev.y);
+
+        float next_dx = static_cast<float>(next.x - curr.x);
+        float next_dy = static_cast<float>(next.y - curr.y);
+
+        float norm_current = norm(dx, dy);
+        float norm_next = norm(next_dx, next_dy);
+
+        if (norm_current > 0 && norm_next > 0) {
+            float dot = dot_product(dx, dy, next_dx, next_dy);
+
+            float cos_theta = dot / (norm_current * norm_next);
+
+            if (!approx_equal(std::fabs(cos_theta), 1.0f)) {
+                segments.push_back(current_segment);
+                current_segment.clear();
+                current_segment.push_back(curr);
+            }
+        }
     }
-  }
-  // Add the last segment
-  if (!current_segment.empty()) {
-    segments.push_back(current_segment);
-  }
 
-  return segments;
+    if (!current_segment.empty()) {
+        segments.push_back(current_segment);
+    }
+
+    return segments;
 }
 
 void EdgeDetection::generate_gcode_optimized(const std::string& filename,
