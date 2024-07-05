@@ -1,33 +1,40 @@
 #include "g-code.hh"
 #include "edge-detection.hh"
 
-void GCode::generate_gcode(const std::vector<std::pair<int, int>> &boundary,
-                           std::string filename) {
-  std::ofstream file(filename);
+void GCode::generate_gcode(const std::vector<std::pair<int, int>>& boundary,
+    std::string filename, float scale, float feedRate) {
+    std::ofstream file(filename);
 
-  // G-code header
-  file << "G90 ; Set to absolute positioning mode\n";
-  file << "G21 ; Set units to millimeters\n";
-  file << "G28 ; Home all axes\n";
-  file << "\n";
+    // G-code header
+    file << "G21 ; Set to millimeters\n";
+    file << "G90 ; Set to absolute positioning\n";
+    file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
 
-  // Set starting point as G00 command
-  file << "G00 X" << boundary[0].second << " Y" << boundary[0].first
-       << std::endl;
+    // Set starting point and pen up
+    const auto& start = boundary.front();
+    file << "G1 X" << start.second * scale << " Y" << -start.first * scale
+        << " F" << feedRate << "\n";
+    file << "M300 S50.00 ; Pen up\n";
 
-  // Generate G01 commands for boundary scanning
-  for (size_t i = 1; i < boundary.size(); i++) {
-    file << "G01 X" << boundary[i].second << " Y" << boundary[i].first
-         << std::endl;
-  }
+    // Pen down to start drawing
+    file << "M300 S30.00 ; Pen down\n";
 
-  // G-code footer
-  file << "\n";
-  file << "M2 ; End of program\n";
+    // Generate G01 commands for boundary scanning
+    for (size_t i = 1; i < boundary.size(); i++) {
+        file << "G1 X" << boundary[i].second * scale << " Y" << -boundary[i].first * scale
+            << " F" << feedRate << "\n";
+    }
 
-  std::cout << "G-code file generated: " << filename << std::endl;
+    // Pen up after finishing drawing
+    file << "M300 S50.00 ; Pen up\n";
 
-  file.close();
+    // G-code footer
+    file << "G1 X0 Y0 F3500.00 ; Go home\n";
+    file << "M18 ; Drives off\n";
+
+    file.close();
+
+    std::cout << "G-code file generated: " << filename << std::endl;
 }
 
 void EdgeDetection::generate_gcode_optimized(const std::string& filename,
@@ -73,8 +80,6 @@ void EdgeDetection::generate_gcode_optimized(const std::string& filename,
         file << "M300 S50.00 ; Pen up\n";
     }
 
-    // Write final G-code commands
-    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
     file << "G1 X0 Y0 F3500.00 ; Go home\n";
     //file << "M18 ; Drives off\n";
 
@@ -94,29 +99,45 @@ void EdgeDetection::generate_canny_gcode(const std::string& filename,
     file << "G90 ; Set to absolute positioning\n";
     file << "G92 X0.00 Y0.00 Z0.00 ; Set current position to origin\n\n";
 
+    // Get all contours including holes
     std::vector<std::vector<cv::Point>> contours;
-    cv::findContours(edgeMap, contours, cv::RETR_EXTERNAL,
-        cv::CHAIN_APPROX_SIMPLE);
+    std::vector<cv::Vec4i> hierarchy;
+    cv::findContours(edgeMap, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-    for (const auto& contour : contours) {
-        if (contour.size() < 3) continue;
+    // Iterate through all contours and hierarchy
+    for (size_t i = 0; i < contours.size(); i++) {
+        if (contours[i].size() < 3) continue;
 
-        const auto& start = contour.front();
-        file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F"
-            << feedRate << '\n';
-
+        const auto& start = contours[i].front();
+        file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
         file << "M300 S30.00 ; Pen down\n";
 
-        for (size_t i = 1; i < contour.size(); ++i) {
-            const auto& point = contour[i];
-            file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F"
-                << feedRate << '\n';
+        for (size_t j = 1; j < contours[i].size(); ++j) {
+            const auto& point = contours[i][j];
+            file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F" << feedRate << '\n';
         }
 
         file << "M300 S50.00 ; Pen up\n";
+
+        // Check for any holes
+        for (size_t k = i + 1; k < contours.size(); ++k) {
+            if (hierarchy[k][3] == i) {
+                // Move to the starting point of the hole
+                const auto& hole_start = contours[k].front();
+                file << "G1 X" << hole_start.x * scale << " Y" << -hole_start.y * scale << " F" << feedRate << '\n';
+                file << "M300 S30.00 ; Pen down\n";
+
+                // Trace the hole contour
+                for (size_t l = 1; l < contours[k].size(); ++l) {
+                    const auto& hole_point = contours[k][l];
+                    file << "G1 X" << hole_point.x * scale << " Y" << -hole_point.y * scale << " F" << feedRate << '\n';
+                }
+
+                file << "M300 S50.00 ; Pen up\n";
+            }
+        }
     }
 
-    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
     file << "G1 X0 Y0 F3500.00 ; Go home\n";
     //file << "M18 ; Drives off\n";
 
@@ -124,6 +145,7 @@ void EdgeDetection::generate_canny_gcode(const std::string& filename,
 
     std::cout << "Canny-based G-code file generated: " << filename << std::endl;
 }
+
 
 void EdgeDetection::generate_gcode_holes(const std::string& filename,
     const cv::Mat& source, float scale,
@@ -164,7 +186,6 @@ void EdgeDetection::generate_gcode_holes(const std::string& filename,
     }
 
     // Write final G-code commands
-    file << "\nG1 Z" << zHeight << " F150.00 ; Move to safe Z height\n";
     file << "G1 X0 Y0 F3500.00 ; Go home\n";
     file << "M18 ; Drives off\n";
 

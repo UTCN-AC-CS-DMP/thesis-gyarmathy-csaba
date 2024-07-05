@@ -147,15 +147,15 @@ int main() {
 
               edge_detection.contour_wrapper(img);
 
-              //gcode.generate_gcode(boundary, "basic.gcode");
+              gcode.generate_gcode(boundary, "basic.gcode", 0.1, 3500);
               edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0,
                                                   3500.0);
               edge_detection.generate_gcode_optimized("optimized.gcode", img,
                                                       0.1, 1.0, 3500.0);
-              //edge_detection.generate_canny_gcode("canny_edge.gcode", canny_edge,
-              //                                    0.1, 1.0, 3500.0);
-              //edge_detection.generate_canny_gcode("canny_boundary.gcode", canny_boundary, 
-              //                                    0.1, 1.0, 3500.0);
+              edge_detection.generate_canny_gcode("canny_edge.gcode", canny_edge,
+                                                 0.1, 1.0, 3500.0);
+              edge_detection.generate_canny_gcode("canny_boundary.gcode", canny_boundary, 
+                                                  0.1, 1.0, 3500.0);
 
               cv::waitKey(0);
               cv::destroyAllWindows();
