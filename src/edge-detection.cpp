@@ -218,16 +218,16 @@ void EdgeDetection::contour_wrapper(cv::Mat& source) {
     cv::Mat edges = canny(gray);
 
     // Initialize output images for line detection
-    cv::Mat dst, cdst, cdstP;
-    cv::cvtColor(edges, dst, cv::COLOR_GRAY2BGR);
-    cdst = dst.clone();
-    cdstP = dst.clone();
+    //cv::Mat dst, cdst, cdstP;
+    //cv::cvtColor(edges, dst, cv::COLOR_GRAY2BGR);
+    //cdst = dst.clone();
+    //cdstP = dst.clone();
 
     // Detect and draw lines using standard and probabilistic Hough transforms
-    detect_lines_standard(edges, cdst);
-    detect_lines_probabilistic(edges, cdstP);
-    cv::imshow("Standard Hough", cdst);
-    cv::imshow("Probabilistic Hough", cdstP);
+    //detect_lines_standard(edges, cdst);
+    //detect_lines_probabilistic(edges, cdstP);
+    //cv::imshow("Standard Hough", cdst);
+    //cv::imshow("Probabilistic Hough", cdstP);
 
     // Clear previous contour data
     contour_points.clear();
@@ -390,7 +390,7 @@ cv::Mat_<uint8_t> EdgeDetection::canny_edge_detection(cv::Mat_<uint8_t>& img) {
     }
   }
 
-  cv::imshow("Explicit Canny", edgeMap);
+  cv::imshow("Canny", edgeMap);
   cv::waitKey(0);
 
   return edgeMap;

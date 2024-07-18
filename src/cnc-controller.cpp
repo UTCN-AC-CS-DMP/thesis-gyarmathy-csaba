@@ -54,7 +54,7 @@ void CNCController::stream() {
     if (!streaming) {
         streaming = true;
         stop_requested = false;
-        std::cout << "Starting CNC operation..." << std::endl;
+        std::cout << "CNC operation in action." << std::endl;
     }
 
     for (current_line_index = 0; current_line_index < gcode_lines.size(); ++current_line_index) {
@@ -69,6 +69,7 @@ void CNCController::stream() {
     streaming = false;
     if (!stop_requested) {
         std::cout << "CNC operation completed." << std::endl;
+        std::cout << "Press S to return to the main menu" << std::endl;
     }
 }
 
@@ -80,13 +81,13 @@ void CNCController::sendGCodeLine(const std::string& line) {
     }
 
     boost::asio::write(*serial_port, boost::asio::buffer(line + '\n'));
-    std::cout << "Sent: " << line << std::endl;
+    //std::cout << "Sent: " << line << std::endl;
 
     std::string response = readResponse();
     while (response.find("ok") == std::string::npos) {
         response = readResponse();
     }
-    std::cout << "Received: " << response << std::endl;
+    //std::cout << "Received: " << response << std::endl;
 }
 
 std::string CNCController::readResponse() {

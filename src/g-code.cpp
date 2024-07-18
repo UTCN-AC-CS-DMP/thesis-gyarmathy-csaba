@@ -104,37 +104,37 @@ void EdgeDetection::generate_canny_gcode(const std::string& filename,
     std::vector<cv::Vec4i> hierarchy;
     cv::findContours(edgeMap, contours, hierarchy, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE);
 
-    // Iterate through all contours and hierarchy
-    for (size_t i = 0; i < contours.size(); i++) {
-        if (contours[i].size() < 3) continue;
+    std::vector<bool> contourProcessed(contours.size(), false);
 
-        const auto& start = contours[i].front();
+    // Helper function to process a contour
+    auto processContour = [&](size_t idx) {
+        if (contourProcessed[idx] || contours[idx].size() < 3) return;
+
+        const auto& start = contours[idx].front();
         file << "G1 X" << start.x * scale << " Y" << -start.y * scale << " F" << feedRate << '\n';
         file << "M300 S30.00 ; Pen down\n";
 
-        for (size_t j = 1; j < contours[i].size(); ++j) {
-            const auto& point = contours[i][j];
+        for (size_t j = 1; j < contours[idx].size(); ++j) {
+            const auto& point = contours[idx][j];
             file << "G1 X" << point.x * scale << " Y" << -point.y * scale << " F" << feedRate << '\n';
         }
 
         file << "M300 S50.00 ; Pen up\n";
+        contourProcessed[idx] = true;
+        };
+
+    // Iterate through all contours and hierarchy
+    for (size_t i = 0; i < contours.size(); i++) {
+        if (contourProcessed[i] || contours[i].size() < 3) continue;
+
+        // Process the main contour
+        processContour(i);
 
         // Check for any holes
-        for (size_t k = i + 1; k < contours.size(); ++k) {
-            if (hierarchy[k][3] == i) {
-                // Move to the starting point of the hole
-                const auto& hole_start = contours[k].front();
-                file << "G1 X" << hole_start.x * scale << " Y" << -hole_start.y * scale << " F" << feedRate << '\n';
-                file << "M300 S30.00 ; Pen down\n";
-
-                // Trace the hole contour
-                for (size_t l = 1; l < contours[k].size(); ++l) {
-                    const auto& hole_point = contours[k][l];
-                    file << "G1 X" << hole_point.x * scale << " Y" << -hole_point.y * scale << " F" << feedRate << '\n';
-                }
-
-                file << "M300 S50.00 ; Pen up\n";
-            }
+        int childIdx = hierarchy[i][2]; // index of the first hole
+        while (childIdx != -1) {
+            processContour(childIdx);
+            childIdx = hierarchy[childIdx][0]; // index of the next hole
         }
     }
 
@@ -145,6 +145,7 @@ void EdgeDetection::generate_canny_gcode(const std::string& filename,
 
     std::cout << "Canny-based G-code file generated: " << filename << std::endl;
 }
+
 
 
 void EdgeDetection::generate_gcode_holes(const std::string& filename,

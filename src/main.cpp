@@ -95,7 +95,7 @@ void cncOptions(CNCController& cnc_controller) {
           streamThread.join();  // Wait for the thread to finish normally
           std::cout << "CNC operation completed." << std::endl;
         }
-        showGCodeMenu();
+        //showGCodeMenu();
         break;
       }
       case 4: {
@@ -139,23 +139,17 @@ int main() {
 
           switch (choice) {
             case 1: {
-              std::vector<std::pair<int, int>> boundary =
-                  edge_detection.calculate_perimeter(img);
+              std::vector<std::pair<int, int>> boundary = edge_detection.calculate_perimeter(img);
               cv::Mat canny_boundary = edge_detection.canny(img);
-              cv::Mat_<uint8_t> canny_edge =
-                  edge_detection.canny_edge_detection(img);
+              cv::Mat_<uint8_t> canny_edge = edge_detection.canny_edge_detection(img);
 
               edge_detection.contour_wrapper(img);
 
               gcode.generate_gcode(boundary, "basic.gcode", 0.1, 3500);
-              edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0,
-                                                  3500.0);
-              edge_detection.generate_gcode_optimized("optimized.gcode", img,
-                                                      0.1, 1.0, 3500.0);
-              edge_detection.generate_canny_gcode("canny_edge.gcode", canny_edge,
-                                                 0.1, 1.0, 3500.0);
-              edge_detection.generate_canny_gcode("canny_boundary.gcode", canny_boundary, 
-                                                  0.1, 1.0, 3500.0);
+              edge_detection.generate_gcode_holes("holes.gcode", img, 0.1, 1.0, 3500.0);
+              edge_detection.generate_gcode_optimized("optimized.gcode", img, 0.1, 1.0, 3500.0);
+              edge_detection.generate_canny_gcode("canny.gcode", canny_edge, 0.09, 1.0, 3500.0);
+              edge_detection.generate_canny_gcode("canny_bi.gcode", canny_boundary, 0.09, 1.0, 3500.0);
 
               cv::waitKey(0);
               cv::destroyAllWindows();
